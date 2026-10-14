@@ -70,8 +70,9 @@ async function main() {
   }
 
   // Webhook (optional)
-  if (process.env.APP_URL) {
-    const url = `${process.env.APP_URL.replace(/\/$/, "")}/api/webhooks/stripe`;
+  const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  if (appUrl && /^https:\/\//.test(appUrl)) {
+    const url = `${appUrl.replace(/\/$/, "")}/api/webhooks/stripe`;
     const hooks = await stripe.webhookEndpoints.list({ limit: 100 });
     const existing = hooks.data.find((h) => h.url === url);
     if (existing) {
@@ -86,7 +87,7 @@ async function main() {
       envLines.push(`STRIPE_WEBHOOK_SECRET=${hook.secret}`);
     }
   } else {
-    console.log("Webhook: skipped (set APP_URL=https://your-domain to register it). Add it manually otherwise — see DEPLOY.md §3.");
+    console.log("Webhook: skipped — set NEXT_PUBLIC_APP_URL in .env.production.local (or APP_URL in the shell) to an https URL and re-run.");
   }
 
   console.log("\nAdd these to Vercel (and .env.production.local):\n");
