@@ -7,9 +7,10 @@ export function loadEnvFile(file = process.env.ENV_FILE ?? ".env.production.loca
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
     if (!m || line.trim().startsWith("#")) continue;
     let v = m[2].trim();
-    // strip a trailing "  # comment" unless the value is quoted
-    if (!/^["']/.test(v)) v = v.replace(/\s+#.*$/, "").trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    const quoted = v.match(/^"([^"]*)"|^'([^']*)'/);
+    if (quoted) v = quoted[1] ?? quoted[2] ?? "";
+    else v = v.replace(/\s+#.*$/, "").trim(); // strip a trailing "  # comment"
+    if (v.startsWith("#")) v = "";
     if (!(m[1] in process.env) && v !== "") process.env[m[1]] = v;
   }
   return file;
