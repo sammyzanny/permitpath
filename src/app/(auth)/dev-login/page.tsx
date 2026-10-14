@@ -26,7 +26,7 @@ export default async function DevLogin(props: PageProps<"/dev-login">) {
               <label className="label" htmlFor="email">
                 Email
               </label>
-              <input id="email" name="email" type="email" required className="input mt-1" placeholder="you@example.com" defaultValue="demo@permitpath.app" />
+              <input id="email" name="email" type="email" required className="input mt-1" placeholder="you@example.com" defaultValue="demo@towncert.com" />
             </div>
             <div>
               <label className="label" htmlFor="name">
@@ -40,7 +40,7 @@ export default async function DevLogin(props: PageProps<"/dev-login">) {
           </form>
         </Card>
         <p className="mt-4 text-xs text-slate-500">
-          Demo account: <code>demo@permitpath.app</code> (created by <code>npm run seed:demo</code>). Admin access: add your email to <code>ADMIN_EMAILS</code>.
+          Demo account: <code>demo@towncert.com</code> (created by <code>npm run seed:demo</code>). Admin access: add your email to <code>ADMIN_EMAILS</code>.
         </p>
       </div>
     </PublicShell>

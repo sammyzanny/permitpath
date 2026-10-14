@@ -15,7 +15,7 @@ export async function GET() {
     const d = it.date.replace(/-/g, "");
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${it.kind}-${it.href.replace(/\W/g, "")}-${d}@permitpath`,
+      `UID:${it.kind}-${it.href.replace(/\W/g, "")}-${d}@towncert.com`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${d}`,
       `SUMMARY:${esc(it.title + " expires")}`,
@@ -31,6 +31,6 @@ export async function GET() {
   }
   lines.push("END:VCALENDAR");
   return new NextResponse(lines.join("\r\n"), {
-    headers: { "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": `attachment; filename="permitpath-${ctx.org.slug}.ics"`, "Cache-Control": "no-store" },
+    headers: { "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": `attachment; filename="towncert-${ctx.org.slug}.ics"`, "Cache-Control": "no-store" },
   });
 }

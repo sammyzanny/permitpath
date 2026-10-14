@@ -1,6 +1,6 @@
-# PermitPath
+# TownCert
 
-Multi-tenant SaaS for contractors working Chicago's south suburbs, where every village runs its own contractor registration with its own fee, bond, insurance minimums, expiry date and submission method. PermitPath keeps the rules for every jurisdiction, computes each renewal from that town's actual rule, stores the supporting documents, and reminds the whole team before a village stops issuing permits.
+Multi-tenant SaaS for contractors working Chicago's south suburbs, where every village runs its own contractor registration with its own fee, bond, insurance minimums, expiry date and submission method. TownCert keeps the rules for every jurisdiction, computes each renewal from that town's actual rule, stores the supporting documents, and reminds the whole team before a village stops issuing permits.
 
 ## What's in the box
 
@@ -28,7 +28,7 @@ npm run seed:demo     # creates ./data/pglite (embedded Postgres), loads 37 juri
 npm run dev           # http://localhost:3000
 ```
 
-Sign in at `/dev-login` as `demo@permitpath.app`. To see `/admin`, run with `ADMIN_EMAILS=demo@permitpath.app`.
+Sign in at `/dev-login` as `demo@towncert.com`. To see `/admin`, run with `ADMIN_EMAILS=demo@towncert.com`.
 
 ## Tests
 

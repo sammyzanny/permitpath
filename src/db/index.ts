@@ -16,7 +16,7 @@ import * as schema from "./schema";
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 declare global {
-  var __permitpathDbPromise: Promise<Db> | undefined;
+  var __towncertDbPromise: Promise<Db> | undefined;
 }
 
 const MIGRATIONS = path.join(process.cwd(), "drizzle");
@@ -47,10 +47,10 @@ async function createPglite(): Promise<Db> {
 }
 
 export function getDb(): Promise<Db> {
-  if (!globalThis.__permitpathDbPromise) {
-    globalThis.__permitpathDbPromise = process.env.DATABASE_URL ? createPostgres(process.env.DATABASE_URL) : createPglite();
+  if (!globalThis.__towncertDbPromise) {
+    globalThis.__towncertDbPromise = process.env.DATABASE_URL ? createPostgres(process.env.DATABASE_URL) : createPglite();
   }
-  return globalThis.__permitpathDbPromise;
+  return globalThis.__towncertDbPromise;
 }
 
 export { schema };

@@ -9,8 +9,6 @@
  * Nothing is written anywhere except a Resend test email to ADMIN_EMAILS[0]
  * when --send-test-email is passed.
  */
-import fs from "node:fs";
-import path from "node:path";
 
 import { loadEnvFile } from "./load-env";
 const file = process.argv.find((a) => a.startsWith(".env")) ?? ".env.production.local";
@@ -115,7 +113,7 @@ async function checkResend() {
     else ok("Resend", `domain ${fromDomain} verified`);
     if (process.argv.includes("--send-test-email") && match?.status === "verified") {
       const to = (process.env.ADMIN_EMAILS ?? "").split(",")[0].trim();
-      const r = await resend.emails.send({ from, to, subject: "PermitPath test email", text: "If you can read this, Resend is wired up." });
+      const r = await resend.emails.send({ from, to, subject: "TownCert test email", text: "If you can read this, Resend is wired up." });
       if (r.error) fail("Resend test email", r.error.message);
       else ok("Resend test email", `sent to ${to} (id ${r.data?.id})`);
     }

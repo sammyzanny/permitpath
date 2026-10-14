@@ -88,7 +88,7 @@ async function main() {
   console.log(`Upserted ${upserted} jurisdictions`);
 
   if (process.argv.includes("--demo")) {
-    const email = "demo@permitpath.app";
+    const email = "demo@towncert.com";
     let [user] = await db.select().from(users).where(eq(users.authId, `dev:${email}`)).limit(1);
     if (!user) [user] = await db.insert(users).values({ authId: `dev:${email}`, email, name: "Demo Owner" }).returning();
 

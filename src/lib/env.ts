@@ -3,8 +3,8 @@
  * "configured?" flag so the app runs end-to-end with zero keys (dev mode) and
  * upgrades to the real provider the moment a key is present.
  */
-export const BRAND = "PermitPath";
-export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? "support@permitpath.app";
+export const BRAND = "TownCert";
+export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? "support@towncert.com";
 export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 export const env = {
@@ -37,7 +37,7 @@ export const env = {
   email: {
     configured: Boolean(process.env.RESEND_API_KEY),
     apiKey: process.env.RESEND_API_KEY ?? "",
-    from: process.env.EMAIL_FROM ?? `${BRAND} <reminders@permitpath.app>`,
+    from: process.env.EMAIL_FROM ?? `${BRAND} <reminders@towncert.com>`,
   },
 
   storage: {

@@ -1,12 +1,12 @@
 /**
- * One-shot Stripe setup: creates the PermitPath product and the three monthly
+ * One-shot Stripe setup: creates the TownCert product and the three monthly
  * prices, enables the customer portal with plan switching, and prints the env
  * vars to paste. Safe to re-run — it looks up existing prices by lookup_key.
  *
  *   STRIPE_SECRET_KEY=sk_test_... npm run setup:stripe
  *   STRIPE_SECRET_KEY=sk_live_... npm run setup:stripe        (do it again for live mode)
  *
- * Optional: APP_URL=https://permitpath.app to also register the webhook endpoint
+ * Optional: APP_URL=https://towncert.com to also register the webhook endpoint
  * (prints STRIPE_WEBHOOK_SECRET — only shown once by Stripe).
  */
 import Stripe from "stripe";
@@ -27,11 +27,14 @@ async function main() {
   console.log(`Stripe ${mode} mode\n`);
 
   // Product
-  const products = await stripe.products.search({ query: "name:'PermitPath'" });
-  const product = products.data[0] ?? (await stripe.products.create({ name: "PermitPath", description: "Municipal contractor registration tracking for Chicago's south suburbs" }));
-  console.log(`Product: ${product.id}`);
+  // (The product was called PermitPath before the rename; pick it up and rename it rather than creating a second one.)
+  const products = await stripe.products.search({ query: "active:'true' AND (name:'TownCert' OR name:'PermitPath')" });
+  let product = products.data.find((p) => p.name === "TownCert") ?? products.data[0];
+  if (!product) product = await stripe.products.create({ name: "TownCert", description: "Municipal contractor registration tracking for Chicago's south suburbs" });
+  else if (product.name !== "TownCert") product = await stripe.products.update(product.id, { name: "TownCert" });
+  console.log(`Product: ${product.id} (${product.name})`);
 
-  // Prices (lookup keys make re-runs idempotent)
+  // Prices (lookup keys make re-runs idempotent; the key prefix predates the rename and must stay stable)
   const envLines: string[] = [];
   for (const id of PLAN_ORDER) {
     const plan = PLANS[id];
@@ -63,7 +66,7 @@ async function main() {
       subscription_update: { enabled: true, default_allowed_updates: ["price"], products: [{ product: product.id, prices: priceIds }], proration_behavior: "create_prorations" },
     };
     if (configs.data[0]) await stripe.billingPortal.configurations.update(configs.data[0].id, { features });
-    else await stripe.billingPortal.configurations.create({ business_profile: { headline: "PermitPath billing" }, features });
+    else await stripe.billingPortal.configurations.create({ business_profile: { headline: "TownCert billing" }, features });
     console.log("Customer portal: configured (plan switching + cancel at period end)");
   } catch (err) {
     console.log("Customer portal: could not configure automatically — enable it in Settings → Billing → Customer portal.", (err as Error).message);
@@ -81,7 +84,7 @@ async function main() {
       const hook = await stripe.webhookEndpoints.create({
         url,
         enabled_events: ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.payment_failed"],
-        description: "PermitPath subscription sync",
+        description: "TownCert subscription sync",
       });
       console.log(`Webhook: created ${hook.id} → ${url}`);
       envLines.push(`STRIPE_WEBHOOK_SECRET=${hook.secret}`);

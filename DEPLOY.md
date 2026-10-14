@@ -1,4 +1,4 @@
-# Deploying PermitPath to production
+# Deploying TownCert to production
 
 Everything below is a one-time setup. Budget an afternoon. Each step ends with how to confirm it worked.
 
@@ -27,7 +27,7 @@ npm run vercel:env       # after `npx vercel link`: pushes the whole file to Ver
 
 ## 2. Authentication — Clerk
 
-1. Create an application. Enable **Email address** as an identifier; enable email code and/or Google. Organizations are *not* needed (PermitPath manages teams itself).
+1. Create an application. Enable **Email address** as an identifier; enable email code and/or Google. Organizations are *not* needed (TownCert manages teams itself).
 2. Copy `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` into Vercel.
 3. In Clerk → Paths, set: Sign-in `/sign-in`, Sign-up `/sign-up`, After sign-up `/onboarding`, After sign-in `/app`.
 4. For production keys, add your domain under Clerk → Domains and follow the DNS instructions.
@@ -90,7 +90,7 @@ Files are served through `/api/files/[id]` using 5-minute signed URLs; the bucke
 ```bash
 npm install --legacy-peer-deps
 npm run seed:demo          # embedded Postgres + 37 towns + demo org
-npm run dev                # http://localhost:3000 → /dev-login as demo@permitpath.app
+npm run dev                # http://localhost:3000 → /dev-login as demo@towncert.com
 ADMIN_EMAILS=you@x.com npm run dev   # to reach /admin, sign in with that email
 npm test                   # unit + integration tests (in-memory Postgres)
 npm run build && ./scripts/dev-server.sh &  npx playwright test   # full e2e

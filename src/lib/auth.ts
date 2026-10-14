@@ -12,7 +12,7 @@ export interface Identity {
 }
 
 export const DEV_COOKIE = "pp_dev_session";
-const DEV_SECRET = process.env.DEV_AUTH_SECRET ?? "permitpath-dev-secret-change-me";
+const DEV_SECRET = process.env.DEV_AUTH_SECRET ?? "towncert-dev-secret-change-me";
 
 function sign(payload: string) {
   return createHmac("sha256", DEV_SECRET).update(payload).digest("base64url");

@@ -7,7 +7,7 @@ import path from "node:path";
  * public site → sign-up → onboarding → towns → documents (real upload) →
  * team invite/accept → billing & plan limits → admin edit → tenant isolation.
  *
- * Server must be running with: ALLOW_DEV_AUTH=1 ADMIN_EMAILS=admin@permitpath.app
+ * Server must be running with: ALLOW_DEV_AUTH=1 ADMIN_EMAILS=admin@towncert.com
  */
 const BASE = process.env.BASE_URL ?? "http://localhost:3210";
 const SHOTS = process.env.SHOTS_DIR ?? "e2e/shots";
@@ -15,7 +15,7 @@ const run = Date.now().toString(36);
 const OWNER = `owner-${run}@example.com`;
 const TEAMMATE = `mate-${run}@example.com`;
 const OUTSIDER = `outsider-${run}@example.com`;
-const ADMIN = "admin@permitpath.app";
+const ADMIN = "admin@towncert.com";
 const COMPANY = `Test Electric ${run}`;
 
 test.describe.configure({ mode: "serial" });
