@@ -101,21 +101,34 @@ async function checkResend() {
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(key);
-    const domains = await resend.domains.list();
-    if (domains.error) return fail("Resend", domains.error.message);
     const from = process.env.EMAIL_FROM ?? "";
     const fromDomain = from.match(/@([^>\s]+)/)?.[1];
-    const list = (domains.data?.data ?? []) as Array<{ name: string; status: string }>;
-    const match = list.find((d) => d.name === fromDomain);
-    if (!fromDomain) fail("Resend", "EMAIL_FROM is not set to an address on your verified domain");
-    else if (!match) fail("Resend", `key OK but domain ${fromDomain} is not added in Resend (found: ${list.map((d) => d.name).join(", ") || "none"})`);
-    else if (match.status !== "verified") fail("Resend", `domain ${fromDomain} status is "${match.status}" — finish DNS verification`);
-    else ok("Resend", `domain ${fromDomain} verified`);
-    if (process.argv.includes("--send-test-email") && match?.status === "verified") {
+    const sendTest = async () => {
+      if (!process.argv.includes("--send-test-email")) return;
       const to = (process.env.ADMIN_EMAILS ?? "").split(",")[0].trim();
       const r = await resend.emails.send({ from, to, subject: "TownCert test email", text: "If you can read this, Resend is wired up." });
       if (r.error) fail("Resend test email", r.error.message);
       else ok("Resend test email", `sent to ${to} (id ${r.data?.id})`);
+    };
+    if (!fromDomain) return fail("Resend", "EMAIL_FROM is not set to an address on your verified domain");
+    const domains = await resend.domains.list();
+    if (domains.error) {
+      // A "sending access only" key is the right least-privilege key for production; it just
+      // can't list domains, so verification can't be confirmed from here (a test email can).
+      if (/restricted|sending/i.test(domains.error.message) && fromDomain !== "resend.dev") {
+        ok("Resend", `send-only key (good) · EMAIL_FROM on ${fromDomain} — domain must show "Verified" at resend.com/domains (or run with --send-test-email)`);
+        await sendTest();
+        return;
+      }
+      return fail("Resend", domains.error.message);
+    }
+    const list = (domains.data?.data ?? []) as Array<{ name: string; status: string }>;
+    const match = list.find((d) => d.name === fromDomain);
+    if (!match) fail("Resend", `key OK but domain ${fromDomain} is not added in Resend (found: ${list.map((d) => d.name).join(", ") || "none"})`);
+    else if (match.status !== "verified") fail("Resend", `domain ${fromDomain} status is "${match.status}" — finish DNS verification`);
+    else {
+      ok("Resend", `domain ${fromDomain} verified`);
+      await sendTest();
     }
   } catch (e) {
     fail("Resend", (e as Error).message);

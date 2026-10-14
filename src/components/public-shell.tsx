@@ -11,7 +11,7 @@ export async function PublicShell({ children, wide = false }: { children: ReactN
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-900 text-sm font-bold text-white">P</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-900 text-sm font-bold text-white">{BRAND[0]}</span>
             <span className="text-base font-semibold tracking-tight text-slate-900">{BRAND}</span>
           </Link>
           <nav className="flex items-center gap-1 text-sm">
