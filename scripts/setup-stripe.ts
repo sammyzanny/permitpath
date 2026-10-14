@@ -11,10 +11,13 @@
  */
 import Stripe from "stripe";
 import { PLANS, PLAN_ORDER } from "../src/lib/plans";
+import { loadEnvFile } from "./load-env";
 
+const envFile = loadEnvFile();
+if (envFile) console.log(`Loaded ${envFile}`);
 const key = process.env.STRIPE_SECRET_KEY;
 if (!key) {
-  console.error("Set STRIPE_SECRET_KEY first (Stripe dashboard → Developers → API keys).");
+  console.error("STRIPE_SECRET_KEY is empty. Put it in .env.production.local (or set it in the shell) — Stripe dashboard → Developers → API keys.");
   process.exit(1);
 }
 const stripe = new Stripe(key, { typescript: true });

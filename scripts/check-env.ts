@@ -12,19 +12,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { loadEnvFile } from "./load-env";
 const file = process.argv.find((a) => a.startsWith(".env")) ?? ".env.production.local";
-if (fs.existsSync(file)) {
-  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (!m || line.trim().startsWith("#")) continue;
-    let v = m[2];
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-    if (!(m[1] in process.env)) process.env[m[1]] = v;
-  }
-  console.log(`Loaded ${file}\n`);
-} else {
-  console.log(`(no ${file} found — checking process environment only)\n`);
-}
+const loaded = loadEnvFile(file);
+console.log(loaded ? `Loaded ${loaded}\n` : `(no ${file} found — checking process environment only)\n`);
 
 type Result = { name: string; status: "ok" | "skip" | "fail"; detail: string };
 const results: Result[] = [];
