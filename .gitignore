@@ -41,3 +41,4 @@ playwright-report/
 test-results/
 yarn-debug.log*
 yarn-error.log*
+.env*.local

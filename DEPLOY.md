@@ -2,6 +2,15 @@
 
 Everything below is a one-time setup. Budget an afternoon. Each step ends with how to confirm it worked.
 
+**Shortcut:** `.env.production.local` is pre-filled with the core values and fresh secrets. As you create each
+account, paste its keys into that file, then:
+
+```bash
+npm run check:env        # round-trips every integration and tells you exactly what is still wrong
+npm run setup:stripe     # after pasting STRIPE_SECRET_KEY: creates the 3 prices, portal and webhook, prints the env lines
+npm run vercel:env       # after `npx vercel link`: pushes the whole file to Vercel in one go
+```
+
 ## 0. Prerequisites
 
 - A GitHub account with this repo pushed to it.
@@ -29,12 +38,10 @@ Make sure `ALLOW_DEV_AUTH` is **unset** in production. The dev login is then ful
 
 ## 3. Billing — Stripe
 
-1. Products → create three recurring monthly prices: Solo $19, Crew $39, Office $79. Copy each **price ID** (`price_…`) into `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_CREW`, `STRIPE_PRICE_OFFICE`.
-2. Developers → API keys → copy the secret key into `STRIPE_SECRET_KEY`.
-3. Developers → Webhooks → Add endpoint `https://<your-domain>/api/webhooks/stripe` with events:
-   `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`.
-   Copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
-4. Settings → Billing → Customer portal: enable it and allow plan switching between the three prices, and cancellation.
+1. Developers → API keys → copy the secret key into `STRIPE_SECRET_KEY` in `.env.production.local`.
+2. Run `APP_URL=https://<your-domain> npm run setup:stripe`. It creates the product, the three monthly prices (Solo $19, Crew $39, Office $79), configures the customer portal for plan switching and cancellation, registers the webhook endpoint, and prints the `STRIPE_PRICE_*` and `STRIPE_WEBHOOK_SECRET` lines — paste them into the env file.
+   (Manual equivalent: Products → three recurring prices; Developers → Webhooks → `https://<your-domain>/api/webhooks/stripe` with events `checkout.session.completed`, `customer.subscription.created/updated/deleted`, `invoice.payment_failed`; Settings → Billing → Customer portal.)
+3. Repeat with the live key once you're ready to charge real cards.
 
 **Confirm:** In test mode, choose a plan on `/app/settings/billing`, pay with `4242 4242 4242 4242`, and the plan badge updates within a few seconds (webhook). `/admin/orgs` shows the Stripe customer ID.
 
@@ -63,10 +70,7 @@ Files are served through `/api/files/[id]` using 5-minute signed URLs; the bucke
 
 1. Import the GitHub repo. Framework: Next.js.
 2. Settings → General → **Build Command**: `npm run deploy:build` (runs migrations, seeds/refreshes the jurisdiction rules, then builds). Install command: `npm install --legacy-peer-deps`.
-3. Add every variable from `.env.example` that you have values for, plus:
-   - `NEXT_PUBLIC_APP_URL=https://<your-domain>`
-   - `ADMIN_EMAILS=<your email>`
-   - `CRON_SECRET=<long random string>` — Vercel Cron sends it automatically.
+3. Environment variables: either run `npx vercel link` then `npm run vercel:env` (pushes everything in `.env.production.local`), or paste them in the dashboard. `NEXT_PUBLIC_APP_URL` should be your final domain (or the `*.vercel.app` URL until you have one).
 4. `vercel.json` already schedules the two daily jobs (reminders 13:00 UTC = 8 am Central, trial notices 13:30 UTC).
 5. Add your domain under Settings → Domains.
 
