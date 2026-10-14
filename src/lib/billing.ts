@@ -45,6 +45,29 @@ async function ensureCustomer(org: Organization, email: string): Promise<string>
 export async function createCheckoutUrl(org: Organization, plan: PlanId, email: string, userId: number): Promise<string> {
   const stripe = await getStripe();
   const customer = await ensureCustomer(org, email);
+
+  // An org that already has a live subscription must change its price, not start a
+  // second subscription (which would double-bill). Send them through the portal's
+  // confirm-update flow so Stripe shows the proration and handles it.
+  if (org.stripeSubscriptionId) {
+    const sub = await stripe.subscriptions.retrieve(org.stripeSubscriptionId).catch(() => null);
+    const live = sub && !["canceled", "incomplete_expired"].includes(sub.status);
+    const item = live ? sub.items.data[0] : undefined;
+    if (live && item) {
+      const session = await stripe.billingPortal.sessions.create({
+        customer,
+        return_url: `${APP_URL}/app/settings/billing?checkout=success`,
+        flow_data: {
+          type: "subscription_update_confirm",
+          subscription_update_confirm: { subscription: sub.id, items: [{ id: item.id, price: priceIdFor(plan), quantity: 1 }] },
+          after_completion: { type: "redirect", redirect: { return_url: `${APP_URL}/app/settings/billing?checkout=success` } },
+        },
+      });
+      await audit({ orgId: org.id, userId, action: "billing.plan_change_started", meta: { from: org.plan, to: plan } });
+      return session.url;
+    }
+  }
+
   const neverPaid = !org.stripeSubscriptionId;
   const trialDaysLeft = org.trialEndsAt ? Math.max(0, Math.ceil((org.trialEndsAt.getTime() - Date.now()) / 86_400_000)) : 0;
   const session = await stripe.checkout.sessions.create({
