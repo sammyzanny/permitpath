@@ -31,6 +31,24 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   const identity = await getIdentity();
   if (!identity) return null;
   const db = await getDb();
+
+  // First sign-in from a new auth identity (e.g. after moving from the Clerk dev
+  // instance to production, or from dev-login to Clerk): if a user with this
+  // verified email already exists, re-link that row instead of creating a second
+  // person who would lose their org memberships.
+  const [byAuth] = await db.select({ id: users.id }).from(users).where(eq(users.authId, identity.authId)).limit(1);
+  if (!byAuth) {
+    const [byEmail] = await db.select().from(users).where(eq(users.email, identity.email)).orderBy(asc(users.id)).limit(1);
+    if (byEmail) {
+      const [relinked] = await db
+        .update(users)
+        .set({ authId: identity.authId, lastSeenAt: new Date(), ...(identity.name ? { name: identity.name } : {}) })
+        .where(eq(users.id, byEmail.id))
+        .returning();
+      return relinked;
+    }
+  }
+
   const [row] = await db
     .insert(users)
     .values({ authId: identity.authId, email: identity.email, name: identity.name, lastSeenAt: new Date() })
