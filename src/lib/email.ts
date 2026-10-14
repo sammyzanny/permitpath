@@ -33,7 +33,7 @@ export async function sendMail(mail: Mail): Promise<{ ok: boolean; id?: string }
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(env.email.apiKey);
-    const res = await resend.emails.send({ from: env.email.from, to, subject: mail.subject, text: mail.text, html: mail.html });
+    const res = await resend.emails.send({ from: env.email.from, to, replyTo: SUPPORT_EMAIL, subject: mail.subject, text: mail.text, html: mail.html });
     if (res.error) throw new Error(res.error.message);
     await db.insert(schema.emailOutbox).values({ toAddresses: to, subject: mail.subject, text: mail.text, html: mail.html ?? null, template: mail.template ?? null, provider: "resend", providerId: res.data?.id ?? null, status: "sent" });
     return { ok: true, id: res.data?.id };
