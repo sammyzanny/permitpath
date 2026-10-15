@@ -28,8 +28,9 @@ async function main() {
 
   // Product
   // (The product was called PermitPath before the rename; pick it up and rename it rather than creating a second one.)
-  const products = await stripe.products.search({ query: "active:'true' AND (name:'TownCert' OR name:'PermitPath')" });
-  let product = products.data.find((p) => p.name === "TownCert") ?? products.data[0];
+  // (Stripe search can't mix AND/OR, so filter on active client-side.)
+  const products = (await stripe.products.search({ query: "name:'TownCert' OR name:'PermitPath'" })).data.filter((p) => p.active);
+  let product = products.find((p) => p.name === "TownCert") ?? products[0];
   if (!product) product = await stripe.products.create({ name: "TownCert", description: "Municipal contractor registration tracking for Chicago's south suburbs" });
   else if (product.name !== "TownCert") product = await stripe.products.update(product.id, { name: "TownCert" });
   console.log(`Product: ${product.id} (${product.name})`);
