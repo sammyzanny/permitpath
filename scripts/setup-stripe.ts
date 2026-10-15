@@ -1,6 +1,5 @@
 /**
- * One-shot Stripe setup: creates the TownCert product and the three monthly
- * prices, enables the customer portal with plan switching, and prints the env
+ * One-shot Stripe setup: creates one product per plan with its monthly price, enables the customer portal with plan switching, and prints the env
  * vars to paste. Safe to re-run — it looks up existing prices by lookup_key.
  *
  *   STRIPE_SECRET_KEY=sk_test_... npm run setup:stripe
@@ -26,45 +25,66 @@ const mode = /^(sk|rk)_live/.test(key) ? "LIVE" : "TEST";
 async function main() {
   console.log(`Stripe ${mode} mode\n`);
 
-  // Product
-  // (The product was called PermitPath before the rename; pick it up and rename it rather than creating a second one.)
-  // (Stripe search can't mix AND/OR, so filter on active client-side.)
-  const products = (await stripe.products.search({ query: "name:'TownCert' OR name:'PermitPath'" })).data.filter((p) => p.active);
-  let product = products.find((p) => p.name === "TownCert") ?? products[0];
-  if (!product) product = await stripe.products.create({ name: "TownCert", description: "Municipal contractor registration tracking for Chicago's south suburbs" });
-  else if (product.name !== "TownCert") product = await stripe.products.update(product.id, { name: "TownCert" });
-  console.log(`Product: ${product.id} (${product.name})`);
-
-  // Prices (lookup keys make re-runs idempotent; the key prefix predates the rename and must stay stable)
+  // One product per plan. Stripe's customer portal only allows plan switching when
+  // every product has at most one price per billing interval, so the three monthly
+  // prices cannot share a product. (Early runs created a single "PermitPath"/"TownCert"
+  // product; prices found under it are archived and re-created under the right one.)
+  const allProducts = (await stripe.products.list({ active: true, limit: 100 })).data;
   const envLines: string[] = [];
+  const portalProducts: { product: string; prices: string[] }[] = [];
   for (const id of PLAN_ORDER) {
     const plan = PLANS[id];
+    const productName = `TownCert ${plan.name}`;
+    let product = allProducts.find((p) => p.name === productName);
+    if (!product) {
+      product = await stripe.products.create({ name: productName, description: `${plan.tagline} Municipal contractor registration tracking for Chicago's south suburbs.` });
+      allProducts.push(product);
+    }
+
+    // Prices (lookup keys make re-runs idempotent; the key prefix predates the rename and must stay stable)
     const lookupKey = `permitpath_${id}_monthly`;
-    const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
-    const price =
-      existing.data[0] ??
-      (await stripe.prices.create({
+    let price: Stripe.Price | undefined = (await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 })).data[0];
+    let note = "existing";
+    if (price && (typeof price.product === "string" ? price.product : price.product.id) !== product.id) {
+      // Existing subscriptions on the archived price keep billing; only new checkouts use the new one.
+      await stripe.prices.update(price.id, { active: false });
+      price = undefined;
+      note = "moved from shared product";
+    }
+    if (!price) {
+      price = await stripe.prices.create({
         product: product.id,
         currency: "usd",
         unit_amount: plan.priceMonthly * 100,
         recurring: { interval: "month" },
         nickname: `${plan.name} — $${plan.priceMonthly}/mo`,
         lookup_key: lookupKey,
-      }));
-    console.log(`  ${plan.name.padEnd(7)} $${plan.priceMonthly}/mo  ${price.id}${existing.data[0] ? " (existing)" : " (created)"}`);
+        transfer_lookup_key: true,
+      });
+      if (note === "existing") note = "created";
+    }
+    console.log(`  ${plan.name.padEnd(7)} $${plan.priceMonthly}/mo  ${product.id}  ${price.id} (${note})`);
     envLines.push(`STRIPE_PRICE_${id.toUpperCase()}=${price.id}`);
+    portalProducts.push({ product: product.id, prices: [price.id] });
+  }
+  // Retire the old shared product if nothing active is left on it.
+  for (const old of allProducts.filter((p) => p.name === "TownCert" || p.name === "PermitPath")) {
+    const live = await stripe.prices.list({ product: old.id, active: true, limit: 1 });
+    if (!live.data.length) {
+      await stripe.products.update(old.id, { active: false });
+      console.log(`  (archived old shared product ${old.id})`);
+    }
   }
 
   // Customer portal: allow switching between the three prices and cancelling.
   try {
     const configs = await stripe.billingPortal.configurations.list({ limit: 1, is_default: true });
-    const priceIds = envLines.map((l) => l.split("=")[1]);
     const features: Stripe.BillingPortal.ConfigurationCreateParams.Features = {
       customer_update: { enabled: true, allowed_updates: ["email", "address"] },
       invoice_history: { enabled: true },
       payment_method_update: { enabled: true },
       subscription_cancel: { enabled: true, mode: "at_period_end" },
-      subscription_update: { enabled: true, default_allowed_updates: ["price"], products: [{ product: product.id, prices: priceIds }], proration_behavior: "create_prorations" },
+      subscription_update: { enabled: true, default_allowed_updates: ["price"], products: portalProducts, proration_behavior: "create_prorations" },
     };
     if (configs.data[0]) await stripe.billingPortal.configurations.update(configs.data[0].id, { features });
     else await stripe.billingPortal.configurations.create({ business_profile: { headline: "TownCert billing" }, features });
