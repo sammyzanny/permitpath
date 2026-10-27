@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppNav } from "./app-nav";
@@ -19,7 +20,7 @@ export async function AppShell({ ctx, children }: { ctx: OrgContext; children: R
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 sm:px-6">
           <div className="flex items-center gap-8">
             <Link href="/app" className="flex items-center gap-2 py-3">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-900 text-sm font-bold text-white">{BRAND[0]}</span>
+              <Image src="/brand/icon.svg" alt="" width={32} height={32} className="h-8 w-8 rounded-lg" priority />
               <span className="text-base font-semibold tracking-tight text-slate-900">{BRAND}</span>
             </Link>
             <AppNav isAdmin={ctx.isPlatformAdmin} />
