@@ -4,6 +4,8 @@ import { PLANS, PLAN_ORDER, trialDaysLeft } from "@/lib/plans";
 import { openBillingPortal, resetTrialDev, startCheckout } from "@/lib/actions/billing";
 import { env } from "@/lib/env";
 import { formatDate } from "@/lib/expiry";
+import { getFoundingOffer } from "@/lib/founding";
+import { FoundingBanner, PlanPrice } from "@/components/founding";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +15,8 @@ export default async function BillingPage(props: PageProps<"/app/settings/billin
   const canManage = ctx.role !== "member";
   const org = ctx.org;
   const daysLeft = org.plan === "trial" ? trialDaysLeft(org.trialEndsAt) : null;
+  // Only first-time subscribers can take the founding offer.
+  const offer = org.stripeSubscriptionId ? null : await getFoundingOffer();
 
   return (
     <>
@@ -49,7 +53,8 @@ export default async function BillingPage(props: PageProps<"/app/settings/billin
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <FoundingBanner offer={offer} />
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
         {PLAN_ORDER.map((id) => {
           const p = PLANS[id];
           const current = org.plan === id && !ctx.limits.readOnly;
@@ -57,10 +62,7 @@ export default async function BillingPage(props: PageProps<"/app/settings/billin
             <div key={id} className={`card flex flex-col p-5 ${current ? "ring-2 ring-slate-900" : ""}`}>
               <div className="flex items-baseline justify-between">
                 <h3 className="text-base font-semibold text-slate-900">{p.name}</h3>
-                <div className="text-2xl font-semibold tabular-nums">
-                  ${p.priceMonthly}
-                  <span className="text-sm font-normal text-slate-500">/mo</span>
-                </div>
+                <PlanPrice plan={p} offer={offer} />
               </div>
               <p className="mt-1 text-sm text-slate-600">{p.tagline}</p>
               <ul className="mt-4 flex-1 space-y-1.5 text-sm text-slate-700">

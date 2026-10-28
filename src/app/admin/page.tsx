@@ -3,9 +3,10 @@ import { Card, PageHeader, Stat } from "@/components/ui";
 import { adminOverview, jurisdictionDemand } from "@/lib/admin-queries";
 import { env } from "@/lib/env";
 import { formatDate } from "@/lib/expiry";
+import { getFoundingOffer } from "@/lib/founding";
 
 export default async function AdminHome() {
-  const [o, demand] = await Promise.all([adminOverview(), jurisdictionDemand()]);
+  const [o, demand, founding] = await Promise.all([adminOverview(), jurisdictionDemand(), getFoundingOffer()]);
   const top = demand.slice(0, 10);
   const integrations = [
     ["Auth (Clerk)", env.clerk.configured],
@@ -19,11 +20,12 @@ export default async function AdminHome() {
   return (
     <>
       <PageHeader title="Overview" subtitle="Platform health at a glance." />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Customers" value={o.orgs.n} hint={`${o.orgs.trial} trialing · ${o.orgs.paying} paying`} />
         <Stat label="Registrations tracked" value={o.regs} />
         <Stat label="Open rule reports" value={o.openReports} tone={o.openReports ? "warn" : "default"} />
         <Stat label="Towns not verified in 180 days" value={o.stale} tone={o.stale ? "warn" : "good"} />
+        {founding ? <Stat label="Founding spots claimed" value={`${founding.claimed} / ${founding.total}`} hint={founding.active ? `${founding.left} left · Solo at $9/mo, applied automatically` : "offer closed"} tone={founding.active ? "default" : "good"} /> : null}
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card title="Most-tracked jurisdictions (verify these first)">

@@ -19,7 +19,8 @@
     "setup:stripe": "tsx scripts/setup-stripe.ts",
     "check:env": "tsx scripts/check-env.ts",
     "gen:secrets": "tsx scripts/gen-secrets.ts",
-    "vercel:env": "tsx scripts/vercel-env.ts"
+    "vercel:env": "tsx scripts/vercel-env.ts",
+    "founding:offer": "tsx scripts/founding-offer.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",

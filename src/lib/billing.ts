@@ -7,6 +7,7 @@ import { PLANS, isPlanId, type PlanId } from "./plans";
 import { audit, reportError } from "./audit";
 import { paymentFailedMail, sendMail } from "./email";
 import type { Organization } from "@/db/schema";
+import { FOUNDING, getFoundingOffer } from "./founding";
 
 const { organizations, stripeEvents, memberships, users } = schema;
 
@@ -70,11 +71,14 @@ export async function createCheckoutUrl(org: Organization, plan: PlanId, email: 
 
   const neverPaid = !org.stripeSubscriptionId;
   const trialDaysLeft = org.trialEndsAt ? Math.max(0, Math.ceil((org.trialEndsAt.getTime() - Date.now()) / 86_400_000)) : 0;
+  // Founding offer: pre-apply the promo on eligible checkouts so nobody has to type a code.
+  // (Stripe forbids combining `discounts` with `allow_promotion_codes`, hence the either/or.)
+  const founding = plan === FOUNDING.plan && neverPaid ? await getFoundingOffer() : null;
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer,
     line_items: [{ price: priceIdFor(plan), quantity: 1 }],
-    allow_promotion_codes: true,
+    ...(founding?.active ? { discounts: [{ promotion_code: founding.promoId }] } : { allow_promotion_codes: true }),
     subscription_data: {
       metadata: { orgId: String(org.id) },
       // Carry over whatever is left of the in-app trial so nobody is charged early.
@@ -84,7 +88,7 @@ export async function createCheckoutUrl(org: Organization, plan: PlanId, email: 
     cancel_url: `${APP_URL}/app/settings/billing?checkout=canceled`,
     metadata: { orgId: String(org.id), plan },
   });
-  await audit({ orgId: org.id, userId, action: "billing.checkout_started", meta: { plan } });
+  await audit({ orgId: org.id, userId, action: "billing.checkout_started", meta: { plan, founding: Boolean(founding?.active) } });
   if (!session.url) throw new Error("Stripe did not return a checkout URL");
   return session.url;
 }

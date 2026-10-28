@@ -90,6 +90,16 @@ async function checkStripe() {
     else ok("Stripe", `${acctLabel} · all 3 prices valid`);
     if (!process.env.STRIPE_WEBHOOK_SECRET) fail("Stripe webhook", "STRIPE_WEBHOOK_SECRET missing — subscriptions won't sync after checkout");
     else ok("Stripe webhook", "secret set (verify the endpoint exists in the dashboard)");
+    const promoId = process.env.STRIPE_FOUNDING_PROMO;
+    if (!promoId) skip("Founding offer", "STRIPE_FOUNDING_PROMO not set — run npm run founding:offer to enable the $9 Solo offer");
+    else {
+      try {
+        const promo = await stripe.promotionCodes.retrieve(promoId);
+        ok("Founding offer", `${promo.code} · ${promo.times_redeemed}/${promo.max_redemptions ?? "∞"} redeemed · ${promo.active ? "active" : "inactive"}`);
+      } catch {
+        fail("Founding offer", `${promoId} not found in this Stripe mode — re-run npm run founding:offer`);
+      }
+    }
   } catch (e) {
     fail("Stripe", (e as Error).message);
   }

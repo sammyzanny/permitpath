@@ -32,6 +32,8 @@ export const env = {
       crew: process.env.STRIPE_PRICE_CREW ?? "",
       office: process.env.STRIPE_PRICE_OFFICE ?? "",
     },
+    /** Promotion code id (promo_…) for the founding-customer offer; created by `npm run founding:offer`. */
+    foundingPromo: process.env.STRIPE_FOUNDING_PROMO ?? "",
   },
 
   email: {

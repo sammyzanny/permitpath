@@ -3,16 +3,22 @@ import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
 import { PLANS, PLAN_ORDER } from "@/lib/plans";
 import { BRAND, env } from "@/lib/env";
+import { getFoundingOffer } from "@/lib/founding";
+import { FoundingBanner, PlanPrice } from "@/components/founding";
 
 export const metadata: Metadata = { title: "Pricing", description: `${BRAND} plans for solo contractors, crews and offices.` };
+// Founding-offer spots come from Stripe; refresh every 5 minutes rather than on every view.
+export const revalidate = 300;
 
-export default function Pricing() {
+export default async function Pricing() {
+  const offer = await getFoundingOffer();
   return (
     <PublicShell>
       <div className="mx-auto max-w-3xl text-center">
         <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Simple pricing</h1>
         <p className="mt-3 text-lg text-slate-600">Every plan starts with a {env.trialDays}-day free trial. No card required. Cancel any time — your data stays.</p>
       </div>
+      <FoundingBanner offer={offer} />
       <div className="mt-10 grid gap-5 md:grid-cols-3">
         {PLAN_ORDER.map((id, idx) => {
           const p = PLANS[id];
@@ -22,9 +28,8 @@ export default function Pricing() {
               {featured ? <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Most popular</div> : null}
               <h2 className="text-lg font-semibold text-slate-900">{p.name}</h2>
               <p className="text-sm text-slate-600">{p.tagline}</p>
-              <div className="mt-4 text-4xl font-semibold tabular-nums text-slate-900">
-                ${p.priceMonthly}
-                <span className="text-base font-normal text-slate-500">/month</span>
+              <div className="mt-4">
+                <PlanPrice plan={p} offer={offer} size="lg" />
               </div>
               <ul className="mt-5 flex-1 space-y-2 text-sm text-slate-700">
                 {p.features.map((f) => (
