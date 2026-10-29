@@ -79,6 +79,9 @@ export async function createCheckoutUrl(org: Organization, plan: PlanId, email: 
     customer,
     line_items: [{ price: priceIdFor(plan), quantity: 1 }],
     ...(founding?.active ? { discounts: [{ promotion_code: founding.promoId }] } : { allow_promotion_codes: true }),
+    // "I agree to the Terms of Service" checkbox on Checkout; Stripe records the acceptance
+    // (consent + timestamp) on the session. Requires the ToS URL in Stripe → Settings → Public details.
+    consent_collection: { terms_of_service: "required" },
     subscription_data: {
       metadata: { orgId: String(org.id) },
       // Carry over whatever is left of the in-app trial so nobody is charged early.
