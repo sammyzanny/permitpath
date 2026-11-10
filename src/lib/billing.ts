@@ -54,6 +54,19 @@ export async function createCheckoutUrl(org: Organization, plan: PlanId, email: 
     const sub = await stripe.subscriptions.retrieve(org.stripeSubscriptionId).catch(() => null);
     const live = sub && !["canceled", "incomplete_expired"].includes(sub.status);
     const item = live ? sub.items.data[0] : undefined;
+    if (live && item && sub.status === "trialing") {
+      // Stripe's portal ends a trial the moment the plan changes and bills the full
+      // month immediately. During a trial, switch the price ourselves instead: the
+      // trial end stays where it was, nothing is charged today, and the webhook
+      // (customer.subscription.updated) syncs the new plan onto the org.
+      await stripe.subscriptions.update(sub.id, {
+        items: [{ id: item.id, price: priceIdFor(plan) }],
+        proration_behavior: "none",
+        trial_end: sub.trial_end ?? undefined,
+      });
+      await audit({ orgId: org.id, userId, action: "billing.plan_changed_in_trial", meta: { from: org.plan, to: plan } });
+      return `${APP_URL}/app/settings/billing?checkout=success`;
+    }
     if (live && item) {
       const session = await stripe.billingPortal.sessions.create({
         customer,
