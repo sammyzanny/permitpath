@@ -1,75 +1,79 @@
-# TownCert
+<p align="center">
+  <img src="public/brand/icon.svg" width="72" alt="TownCert" />
+</p>
 
-Multi-tenant SaaS for contractors working Chicago's south suburbs, where every village runs its own contractor registration with its own fee, bond, insurance minimums, expiry date and submission method. TownCert keeps the rules for every jurisdiction, computes each renewal from that town's actual rule, stores the supporting documents, and reminds the whole team before a village stops issuing permits.
+<h1 align="center">TownCert</h1>
 
-## What's in the box
+<p align="center">
+  Municipal contractor-registration tracking for Chicago's south suburbs.<br />
+  <strong><a href="https://towncert.com">towncert.com</a></strong> · live, taking customers
+</p>
 
-**Customer app** (`/app`)
-- Onboarding: create a company, pick the towns you work in; 14-day trial, no card.
-- My towns: every registration with status, issue date, and an expiry computed from the town's rule (fixed year, calendar year, or rolling from issue date). Plan limits enforced.
-- Renewal calendar with 60/30/14/day-of reminder ladder, manual run, and an `.ics` feed for Google/Apple/Outlook.
-- Document vault: COI, workers' comp, per-town bonds, state licenses, electrical credentials — real file uploads served only to the owning org; conflict detection when a certificate lapses in the 90 days before a renewal.
-- Rules directory with per-town checklist and "report a problem".
-- Settings: company, team with roles and email invitations, plan & billing (Stripe Checkout + portal), activity log.
+---
 
-**Public site** — landing, pricing, and an SEO directory with one page per jurisdiction (`/rules/[slug]`, JSON-LD, sitemap).
+Every village around Chicago runs its own contractor registration: its own fee, bond, insurance minimums, expiration rule and way to submit. A plumber working Steger, Chicago Heights and Matteson has three different renewal dates computed three different ways, and the day one lapses, that village stops issuing permits. Contractors track this on whiteboards and in glove boxes.
 
-**Admin** (`/admin`, email allow-list) — overview with integration status, jurisdiction editor with full revision history, customer rule reports, customer list, email outbox.
+TownCert replaces that. It holds the verified rules for **37 south-suburban jurisdictions**, computes each renewal from the town's actual rule, keeps the bond and certificate of insurance on file, and reminds the whole crew 60, 30 and 14 days out. It is a multi-tenant subscription SaaS that I designed, built and launched solo in 2026.
 
-**Platform** — Next.js 16 App Router, TypeScript, Tailwind v4, Drizzle ORM on Postgres (embedded PGlite locally, Neon/any Postgres in prod), Clerk auth with a cookie dev-login fallback, Stripe subscriptions with idempotent webhooks, Resend email with a DB outbox fallback, S3-compatible storage with local-disk fallback, cron endpoints secured by a shared secret, audit log on every write.
+<p align="center">
+  <img src="docs/town-page.png" width="880" alt="A public town page: Steger's renewal checklist, fees, bond, expiry model and contact, compiled from the village's own sources." />
+</p>
 
-Every integration is optional at runtime: with zero keys the whole product works locally using the fallbacks, and each one switches to the real provider when its env vars appear.
+<p align="center">
+  <img src="docs/my-towns.png" width="880" alt="The customer app: every tracked town with its term, fee, bond and submission method." />
+</p>
 
-## Quick start
+## What it does
+
+- **Rules engine.** Three expiry models (fixed date, calendar year, rolling from issue), per-town checklists with fees, bonds, insurance minimums and forms, and a public page per jurisdiction that serves as both documentation and SEO landing page.
+- **Reminders that match reality.** A 60/30/14/day-of ladder sent by daily cron, plus conflict detection when a COI or bond lapses in the 90 days before a renewal, the thing villages reject applications for.
+- **Document vault.** COIs, bonds, state licenses and trade credentials stored privately and served through short-lived signed URLs.
+- **Teams and billing.** Organizations with owner/admin/member roles, email invitations, a 30-day no-card trial, three plans through Stripe Checkout, plan switching through the customer portal, and a founding-customer offer whose remaining spots are read live from Stripe.
+- **Operator console.** Rule editor with full revision history, customer-submitted corrections, verification tracking, customer list, and an email outbox.
+
+## How it's built
+
+| Layer | Choice |
+|---|---|
+| App | Next.js 16 (App Router, Server Actions), TypeScript, Tailwind CSS v4 |
+| Data | PostgreSQL on Neon, Drizzle ORM; PGlite (embedded Postgres) locally and in tests |
+| Auth | Clerk (email code + Google), with multi-tenancy implemented in the app |
+| Billing | Stripe Checkout, Customer Portal and idempotent webhooks |
+| Email & files | Resend (with a database outbox fallback), Cloudflare R2 behind signed URLs |
+| Hosting | Vercel, with cron jobs for reminders and trial notices |
+| Tests | Vitest (unit + integration against in-memory Postgres), Playwright (10 end-to-end flows) |
+
+Every integration is optional at runtime: with zero keys the whole product runs locally on PGlite, local disk and a cookie-based dev login, and each piece switches to the real provider the moment its environment variable appears. That is what makes the test suite and local development frictionless.
+
+## Run it locally
 
 ```bash
 npm install --legacy-peer-deps
-npm run seed:demo     # creates ./data/pglite (embedded Postgres), loads 37 jurisdictions + a demo company
-npm run dev           # http://localhost:3000
+npm run seed:demo     # embedded Postgres + 37 jurisdictions + a demo company
+npm run dev           # http://localhost:3000, sign in at /dev-login as demo@towncert.com
+npm test              # unit + integration
 ```
 
-Sign in at `/dev-login` as `demo@towncert.com`. To see `/admin`, run with `ADMIN_EMAILS=demo@towncert.com`.
+Node 20.12 or newer. To see the operator console, start with `ADMIN_EMAILS=demo@towncert.com`. Production setup, service by service, is in [DEPLOY.md](DEPLOY.md).
 
-## Tests
-
-```bash
-npm test                     # 34 unit + integration tests (vitest, in-memory Postgres)
-npm run build
-./scripts/dev-server.sh &    # production build in dev-auth mode on :3210
-npx playwright test          # 10 end-to-end scenarios covering the whole product
-```
-
-## Project layout
+## Where things live
 
 ```
-data/jurisdictions.json        rules database seed (37 south-suburban jurisdictions)
-drizzle/                        SQL migrations (drizzle-kit)
-scripts/seed.ts, migrate.ts     deploy-time scripts
-src/db/schema.ts                Postgres schema (users, organizations, memberships, invitations,
-                                jurisdictions + revisions, registrations, documents, reminders,
-                                rule_reports, audit_events, email_outbox, stripe_events)
-src/db/index.ts                 driver selection: PGlite (local) / postgres.js (DATABASE_URL)
-src/lib/env.ts                  all env-driven config + "configured?" flags
-src/lib/auth.ts                 Clerk or dev-cookie identity
-src/lib/tenancy.ts              current user/org context, roles, guards
-src/lib/plans.ts                tiers and limit enforcement
-src/lib/billing.ts              Stripe checkout, portal, webhook processing
-src/lib/email.ts                Resend/outbox + templates
-src/lib/storage.ts              S3/local file storage
-src/lib/expiry.ts               expiry & reminder-ladder math (pure, unit-tested)
-src/lib/reminders.ts            multi-org reminder engine, trial notices
-src/lib/queries.ts              org-scoped reads; admin-queries.ts for /admin
-src/lib/actions/*.ts            server actions (org, registrations, documents, billing, admin, dev-auth)
-src/proxy.ts                    route protection (Clerk middleware or dev cookie)
-src/app/                        routes: public, (auth), onboarding, invite, app/*, admin/*, api/*
-e2e/                            Playwright suites
-DEPLOY.md                       step-by-step production setup
+data/jurisdictions.json     the rules database (37 towns, with sources and verification state)
+src/lib/expiry.ts           expiry models and the reminder ladder (pure functions, unit-tested)
+src/lib/reminders.ts        the daily reminder engine
+src/lib/billing.ts          Stripe checkout, portal flows, webhook processing
+src/lib/tenancy.ts          current user / organization / role resolution
+src/db/schema.ts            the Postgres schema
+src/app/                    routes: public site, onboarding, /app, /admin, /api
+scripts/                    setup-stripe, founding-offer, check-env, seed, migrate
+e2e/                        Playwright suites
 ```
 
-## Deploying
+## About the data
 
-See **DEPLOY.md** — Neon, Clerk, Stripe, Resend, R2/S3, Vercel, in that order, each with a confirmation step.
+Rules were compiled from each municipality's website, application forms and codified ordinances in September 2026 and are re-verified on a schedule; the town pages cite their sources and flag anything a village doesn't publish. Requirements change without notice. The app says so on every page, and so does this README: confirm with the village before you submit.
 
-## Data caveats
+## License
 
-Rules were read from official municipal sources in September 2026 and change without notice. Fields no village publishes online are flagged "confirm by phone" in the UI and listed in the companion spreadsheet. Known conflicts: University Park bond ($5k web vs $10k form), Harvey bond ($20k form vs $10k code), Homewood fee (2017 form; village says fees rose May 2026). Use `/admin` to correct and stamp verified as you confirm each one.
+Source-available for review and reference. All rights reserved; see [LICENSE](LICENSE).
