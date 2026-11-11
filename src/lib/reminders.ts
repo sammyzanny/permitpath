@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
-import { dueReminders, formatDate } from "./expiry";
+import { daysUntil, dueReminders, formatDate } from "./expiry";
 import { listDocuments, listRegistrations, listMembers } from "./queries";
 import { reminderMail, sendMail, trialEndingMail } from "./email";
 import { effectiveLimits, trialDaysLeft } from "./plans";
@@ -83,7 +83,7 @@ export async function runRemindersForOrg(orgId: number, today = new Date()): Pro
         result.skipped++;
         continue;
       }
-      const mail = reminderMail({ to, orgName: org.name, title: t.title, daysBefore: due.daysBefore, expiresOn: formatDate(t.expiresOn), details: t.details, href: t.href });
+      const mail = reminderMail({ to, orgName: org.name, title: t.title, daysLeft: daysUntil(t.expiresOn, today) ?? due.daysBefore, expiresOn: formatDate(t.expiresOn), details: t.details, href: t.href });
       const res = await sendMail(mail);
       await db
         .insert(reminders)

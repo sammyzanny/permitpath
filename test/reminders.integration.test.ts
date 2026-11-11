@@ -34,8 +34,8 @@ describe("reminder engine (PGlite, in-memory)", () => {
     const first = await runRemindersForOrg(orgId);
     expect(first.created).toBe(2);
     expect(first.sent).toBe(2);
-    expect(first.subjects.some((s) => s.includes("expires in 60 days"))).toBe(true);
-    expect(first.subjects.some((s) => s.includes("expires in 30 days"))).toBe(true);
+    // Both subjects say how far away the deadline actually is, not which step fired.
+    expect(first.subjects.every((s) => s.includes("expires in 20 days"))).toBe(true);
 
     const second = await runRemindersForOrg(orgId);
     expect(second.created).toBe(0);

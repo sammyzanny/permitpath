@@ -59,8 +59,11 @@ function layout(title: string, bodyHtml: string) {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-export function reminderMail(input: { to: string[]; orgName: string; title: string; daysBefore: number; expiresOn: string; details: string[]; href: string }): Mail {
-  const when = input.daysBefore === 0 ? "expires today" : `expires in ${input.daysBefore} days`;
+export function reminderMail(input: { to: string[]; orgName: string; title: string; daysLeft: number; expiresOn: string; details: string[]; href: string }): Mail {
+  // Say how far away the deadline actually is, not which ladder step fired: the
+  // 60-day step can run late (first check after the mark) or the date can have passed.
+  const n = input.daysLeft;
+  const when = n < -1 ? `expired ${-n} days ago` : n === -1 ? "expired yesterday" : n === 0 ? "expires today" : n === 1 ? "expires tomorrow" : `expires in ${n} days`;
   const subject = `${input.title} ${when} (${input.expiresOn})`;
   const text = [`${input.orgName}: ${input.title} ${when}, on ${input.expiresOn}.`, "", ...input.details, "", `Open in ${BRAND}: ${APP_URL}${input.href}`].join("\n");
   const html = layout(
