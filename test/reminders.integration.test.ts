@@ -3,6 +3,7 @@ import { getDb, schema } from "@/db";
 import { runRemindersForOrg, runTrialNotices } from "@/lib/reminders";
 import { findDocumentConflicts, listRegistrations } from "@/lib/queries";
 import { eq } from "drizzle-orm";
+import { daysUntil } from "@/lib/expiry";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const day = 86_400_000;
@@ -35,7 +36,10 @@ describe("reminder engine (PGlite, in-memory)", () => {
     expect(first.created).toBe(2);
     expect(first.sent).toBe(2);
     // Both subjects say how far away the deadline actually is, not which step fired.
-    expect(first.subjects.every((s) => s.includes("expires in 20 days"))).toBe(true);
+    // (Computed the same way the engine does: iso() is a UTC date, so late in the
+    // evening in Chicago the local calendar distance is 19 or 21, not 20.)
+    const left = daysUntil(iso(expires));
+    expect(first.subjects.every((s) => s.includes(`expires in ${left} days`))).toBe(true);
 
     const second = await runRemindersForOrg(orgId);
     expect(second.created).toBe(0);
