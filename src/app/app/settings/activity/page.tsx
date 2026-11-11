@@ -20,6 +20,8 @@ const LABELS: Record<string, string> = {
   "team.role_changed": "changed a role",
   "team.removed": "removed a teammate",
   "billing.checkout_started": "started checkout",
+  "billing.plan_change_started": "started a plan change",
+  "billing.plan_changed_in_trial": "changed plan during trial",
   "billing.subscription_synced": "subscription updated (Stripe)",
   "billing.payment_failed": "payment failed (Stripe)",
   "billing.dev_plan_set": "set plan (dev)",

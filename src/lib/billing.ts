@@ -59,10 +59,11 @@ export async function createCheckoutUrl(org: Organization, plan: PlanId, email: 
       // month immediately. During a trial, switch the price ourselves instead: the
       // trial end stays where it was, nothing is charged today, and the webhook
       // (customer.subscription.updated) syncs the new plan onto the org.
+      // Do not pass trial_end here, even unchanged: Stripe treats it as a billing-cycle
+      // reset and issues a $0 "Trial period" invoice for every switch.
       await stripe.subscriptions.update(sub.id, {
         items: [{ id: item.id, price: priceIdFor(plan) }],
         proration_behavior: "none",
-        trial_end: sub.trial_end ?? undefined,
       });
       await audit({ orgId: org.id, userId, action: "billing.plan_changed_in_trial", meta: { from: org.plan, to: plan } });
       return `${APP_URL}/app/settings/billing?checkout=success`;
