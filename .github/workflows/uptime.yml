@@ -1,0 +1,34 @@
+# Free uptime monitor: every 15 minutes, hit the production health probe.
+# A failed run emails the repository owner (GitHub's default notification for
+# failed scheduled workflows), so there is no third-party account to manage.
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check https://towncert.com/api/health
+        run: |
+          set -u
+          for attempt in 1 2 3; do
+            body=$(curl -sS --max-time 20 -w '\n%{http_code}' https://towncert.com/api/health) && {
+              code=$(echo "$body" | tail -n1)
+              json=$(echo "$body" | sed '$d')
+              if [ "$code" = "200" ] && echo "$json" | grep -q '"ok":true'; then
+                echo "OK ($code): $json"; exit 0
+              fi
+              echo "attempt $attempt: HTTP $code — $json"
+            } || echo "attempt $attempt: request failed"
+            sleep 20
+          done
+          echo "::error::towncert.com health check failed three times in a row"
+          exit 1
